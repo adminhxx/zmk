@@ -237,6 +237,37 @@ int zmk_endpoints_send_mouse_report() {
 }
 #endif // IS_ENABLED(CONFIG_ZMK_POINTING)
 
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+int zmk_endpoints_send_radial_controller_report() {
+    switch (current_instance.transport) {
+#if IS_ENABLED(CONFIG_ZMK_USB)
+    case ZMK_TRANSPORT_USB: {
+        int err = zmk_usb_hid_send_radial_controller_report();
+        if (err) {
+            LOG_ERR("FAILED TO SEND OVER USB: %d", err);
+        }
+        return err;
+    }
+#endif /* IS_ENABLED(CONFIG_ZMK_USB) */
+
+#if IS_ENABLED(CONFIG_ZMK_BLE)
+    case ZMK_TRANSPORT_BLE: {
+        struct zmk_hid_radial_controller_report *radial_controller_report =
+            zmk_hid_get_radial_controller_report();
+        int err = zmk_hog_send_radial_controller_report(&radial_controller_report->body);
+        if (err) {
+            LOG_ERR("FAILED TO SEND OVER HOG: %d", err);
+        }
+        return err;
+    }
+#endif /* IS_ENABLED(CONFIG_ZMK_BLE) */
+    }
+
+    LOG_ERR("Unsupported endpoint transport %d", current_instance.transport);
+    return -ENOTSUP;
+}
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+
 #if IS_ENABLED(CONFIG_SETTINGS)
 
 static int endpoints_handle_set(const char *name, size_t len, settings_read_cb read_cb,
@@ -335,9 +366,15 @@ void zmk_endpoints_clear_current(void) {
 #if IS_ENABLED(CONFIG_ZMK_POINTING)
     zmk_hid_mouse_clear();
 #endif // IS_ENABLED(CONFIG_ZMK_POINTING)
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+    zmk_hid_radial_controller_clear();
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLER)
 
     zmk_endpoints_send_report(HID_USAGE_KEY);
     zmk_endpoints_send_report(HID_USAGE_CONSUMER);
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+    zmk_endpoints_send_radial_controller_report();
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLER)
 }
 
 static void update_current_endpoint(void) {

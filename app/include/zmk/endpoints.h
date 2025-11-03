@@ -74,4 +74,8 @@ int zmk_endpoints_send_report(uint16_t usage_page);
 int zmk_endpoints_send_mouse_report();
 #endif // IS_ENABLED(CONFIG_ZMK_POINTING)
 
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+int zmk_endpoints_send_radial_controller_report();
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+
 void zmk_endpoints_clear_current(void);

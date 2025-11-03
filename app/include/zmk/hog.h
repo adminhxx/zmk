@@ -15,3 +15,7 @@ int zmk_hog_send_consumer_report(struct zmk_hid_consumer_report_body *body);
 #if IS_ENABLED(CONFIG_ZMK_POINTING)
 int zmk_hog_send_mouse_report(struct zmk_hid_mouse_report_body *body);
 #endif // IS_ENABLED(CONFIG_ZMK_POINTING)
+
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+int zmk_hog_send_radial_controller_report(struct zmk_hid_radial_controller_report_body *body);
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)

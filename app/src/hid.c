@@ -33,6 +33,24 @@ static struct zmk_hid_mouse_report mouse_report = {
 
 #endif // IS_ENABLED(CONFIG_ZMK_POINTING)
 
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER_CONTACT_POSITION)
+#define RADIAL_CONTROLLER_DIGITIZER_LOGICAL_WIDTH 3000
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER_CONTACT_POSITION)
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+static struct zmk_hid_radial_controller_report radial_controller_report = {
+    .report_id = ZMK_HID_REPORT_ID_RADIAL_CONTROLLER,
+    .body = {.button = false,
+             .dial = 0
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER_CONTACT_POSITION)
+             ,
+             .x = RADIAL_CONTROLLER_DIGITIZER_LOGICAL_WIDTH / 2,
+             .y = RADIAL_CONTROLLER_DIGITIZER_LOGICAL_WIDTH / 2,
+             .width = RADIAL_CONTROLLER_DIGITIZER_LOGICAL_WIDTH
+#endif
+    }};
+
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+
 // Keep track of how often a modifier was pressed.
 // Only release the modifier if the count is 0.
 static int explicit_modifier_counts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -468,6 +486,44 @@ void zmk_hid_mouse_clear(void) {
 
 #endif // IS_ENABLED(CONFIG_ZMK_POINTING)
 
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+
+int zmk_hid_radial_controller_button_press() {
+    radial_controller_report.body.button = true;
+    radial_controller_report.body.dial = 0;
+    return 0;
+}
+
+int zmk_hid_radial_controller_button_release() {
+    radial_controller_report.body.button = false;
+    radial_controller_report.body.dial = 0;
+    return 0;
+}
+
+int zmk_hid_radial_controller_dial_rotate(int16_t x10degree) {
+    int16_t value = x10degree;
+    if (x10degree > 3600)
+        value = 3600;
+    if (x10degree < -3600)
+        value = -3600;
+    radial_controller_report.body.dial = value;
+    return 0;
+}
+
+void zmk_hid_radial_controller_clear() {
+    radial_controller_report.body.button = false;
+    radial_controller_report.body.dial = 0;
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER_CONTACT_POSITION)
+    radial_controller_report.body.x = RADIAL_CONTROLLER_DIGITIZER_LOGICAL_WIDTH / 2;
+    radial_controller_report.body.y = RADIAL_CONTROLLER_DIGITIZER_LOGICAL_WIDTH / 2;
+    radial_controller_report.body.width = RADIAL_CONTROLLER_DIGITIZER_LOGICAL_WIDTH;
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER_CONTACT_POSITION)
+}
+
+bool zmk_hid_radial_controller_button_is_pressed() { return radial_controller_report.body.button; }
+
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+
 struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void) { return &keyboard_report; }
 
 struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void) { return &consumer_report; }
@@ -477,3 +533,11 @@ struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void) { return &cons
 struct zmk_hid_mouse_report *zmk_hid_get_mouse_report(void) { return &mouse_report; }
 
 #endif // IS_ENABLED(CONFIG_ZMK_POINTING)
+
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+
+struct zmk_hid_radial_controller_report *zmk_hid_get_radial_controller_report() {
+    return &radial_controller_report;
+}
+
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)

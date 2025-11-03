@@ -76,6 +76,7 @@
 #define ZMK_HID_REPORT_ID_LEDS 0x01
 #define ZMK_HID_REPORT_ID_CONSUMER 0x02
 #define ZMK_HID_REPORT_ID_MOUSE 0x03
+#define ZMK_HID_REPORT_ID_RADIAL_CONTROLLER 0x04
 
 #ifndef HID_ITEM_TAG_PUSH
 #define HID_ITEM_TAG_PUSH 0xA
@@ -253,6 +254,63 @@ static const uint8_t zmk_hid_report_desc[] = {
     HID_END_COLLECTION,
     HID_END_COLLECTION,
 #endif // IS_ENABLED(CONFIG_ZMK_POINTING)
+
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+    // see
+    // https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/radial-controller-sample-report-descriptors
+
+    // clang-format off
+    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),
+    HID_USAGE(HID_USAGE_GD_SYSTEM_MULTI_AXIS_CONTROLLER),
+    HID_COLLECTION(HID_COLLECTION_APPLICATION),
+    HID_REPORT_ID(ZMK_HID_REPORT_ID_RADIAL_CONTROLLER),
+    HID_USAGE_PAGE(HID_USAGE_DIGITIZERS),
+    HID_USAGE(HID_USAGE_DIGITIZERS_PUCK),
+    HID_COLLECTION(HID_COLLECTION_PHYSICAL), // Physical
+    HID_USAGE_PAGE(0x09),                    // Buttons
+    HID_USAGE(0x01),                         // Button 1
+    HID_LOGICAL_MIN8(0x00),
+    HID_LOGICAL_MAX8(0x01),
+    HID_REPORT_COUNT(1),
+    HID_REPORT_SIZE(1),
+    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),
+    HID_USAGE(HID_USAGE_GD_DIAL),
+    0x55, 0x0F,                              // Unit Exponent (-1)
+    0x65, 0x14,                              // Unit (System: English Rotation, Length: Centimeter)
+    0x36, 0xF0, 0xF1,                        // Physical Minimum (-3600)
+    0x46, 0x10, 0x0E,                        // Physical Maximum (3600)
+    HID_LOGICAL_MIN16(0xF0, 0xF1),           // Logical Minimum (-3600)
+    HID_LOGICAL_MAX16(0x10, 0x0E),           // Logical Minimum (3600)
+    HID_REPORT_COUNT(1),
+    HID_REPORT_SIZE(15),
+    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_REL),
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER_CONTACT_POSITION)
+    HID_USAGE(HID_USAGE_GD_X),               // Usage (X)
+    HID_REPORT_SIZE(16),
+    0x55, 0x0d,                              // Unit Exponent(-3)
+    0x65, 0x13,                              // Unit (Inch, EngLinear)
+    HID_PHYSICAL_MIN8(0x00),                 // PhysicalL Minimum (0)
+    0x46, 0xC0, 0x5D,                        // Physical Maximum (24000)
+    HID_PHYSICAL_MIN8(0x00),                 // Logical Minimum (0)
+    HID_LOGICAL_MAX16(0xFF, 0x7F),           // Logical Maximum (32760)
+    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+    HID_USAGE(HID_USAGE_GD_Y),               // Usage (Y)
+    0x46, 0xb0, 0x36,                        // Physical Maximum (14000)
+    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+    HID_USAGE_PAGE(HID_USAGE_DIGITIZERS),
+    HID_USAGE(HID_USAGE_DIGITIZERS_WIDTH),   // Usage (Width)
+    0x36, 0xb8, 0x0b,                        // Physical Minimum (3000)
+    0x46, 0xb8, 0x0b,                        // Physical Maximum (3000)
+    HID_LOGICAL_MIN16(0xB8, 0x0B),           // Logical Minimum (3000)
+    HID_LOGICAL_MAX16(0xB8, 0x0B),           // Logical Minimum (3000)
+    HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR |
+              ZMK_HID_MAIN_VAL_ABS),         // Input (Cnst,Var,Abs)
+#endif // CONFIG_ZMK_RADIAL_CONTROLLER_CONTACT_POSITION
+    HID_END_COLLECTION,
+    HID_END_COLLECTION,
+// clang-format on
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
 };
 
 #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
@@ -341,6 +399,23 @@ struct zmk_hid_mouse_resolution_feature_report {
 
 #endif // IS_ENABLED(CONFIG_ZMK_POINTING)
 
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+struct zmk_hid_radial_controller_report_body {
+    bool button : 1;
+    int16_t dial : 15;
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER_CONTACT_POSITION)
+    uint16_t x;
+    uint16_t y;
+    uint16_t width;
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER_CONTACT_POSITION)
+} __packed;
+
+struct zmk_hid_radial_controller_report {
+    uint8_t report_id;
+    struct zmk_hid_radial_controller_report_body body;
+} __packed;
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+
 zmk_mod_flags_t zmk_hid_get_explicit_mods(void);
 int zmk_hid_register_mod(zmk_mod_t modifier);
 int zmk_hid_unregister_mod(zmk_mod_t modifier);
@@ -380,6 +455,14 @@ void zmk_hid_mouse_clear(void);
 
 #endif // IS_ENABLED(CONFIG_ZMK_POINTING)
 
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+int zmk_hid_radial_controller_button_press();
+int zmk_hid_radial_controller_button_release();
+int zmk_hid_radial_controller_dial_rotate(int16_t x10degree);
+void zmk_hid_radial_controller_clear();
+bool zmk_hid_radial_controller_button_is_pressed();
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+
 struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void);
 struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void);
 
@@ -390,3 +473,7 @@ zmk_hid_boot_report_t *zmk_hid_get_boot_report();
 #if IS_ENABLED(CONFIG_ZMK_POINTING)
 struct zmk_hid_mouse_report *zmk_hid_get_mouse_report();
 #endif // IS_ENABLED(CONFIG_ZMK_POINTING)
+
+#if IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
+struct zmk_hid_radial_controller_report *zmk_hid_get_radial_controller_report();
+#endif // IS_ENABLED(CONFIG_ZMK_RADIAL_CONTROLLER)
